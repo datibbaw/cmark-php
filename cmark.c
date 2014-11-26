@@ -81,7 +81,7 @@ static inline void php_cmark_node_free(void *object TSRMLS_DC) {
     
     zend_object_std_dtor(&node->std TSRMLS_CC);
     
-    cmark_node_destroy(node->n);
+    //cmark_node_destroy(node->n);
     
     efree(node);
 }
@@ -509,7 +509,7 @@ PHP_METHOD(Node, insertBefore) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
     zval *sibling;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o", &sibling, ce_Node) != SUCCESS) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &sibling, ce_Node) != SUCCESS) {
         return;
     }
     
@@ -520,7 +520,7 @@ PHP_METHOD(Node, insertAfter) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
     zval *sibling;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o", &sibling, ce_Node) != SUCCESS) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &sibling, ce_Node) != SUCCESS) {
         return;
     }
     
@@ -531,7 +531,7 @@ PHP_METHOD(Node, prependChild) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
     zval *child;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o", &child, ce_Node) != SUCCESS) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &child, ce_Node) != SUCCESS) {
         return;
     }
     
@@ -542,7 +542,7 @@ PHP_METHOD(Node, appendChild) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
     zval *child;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o", &child, ce_Node) != SUCCESS) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &child, ce_Node) != SUCCESS) {
         return;
     }
     
