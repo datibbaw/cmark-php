@@ -42,6 +42,7 @@ typedef struct _php_cmark_parser_t {
 typedef struct _php_cmark_node_t {
     zend_object       std;
     cmark_node       *n;
+    zend_bool         ref;
 } php_cmark_node_t;
 
 #define php_cmark_node_new(t)   ((php_cmark_node_t*) ecalloc(1, sizeof(php_cmark_node_t)))
@@ -81,7 +82,9 @@ static inline void php_cmark_node_free(void *object TSRMLS_DC) {
     
     zend_object_std_dtor(&node->std TSRMLS_CC);
     
-    //cmark_node_destroy(node->n);
+    if (!node->ref) {
+        //cmark_free_nodes(node->n);   
+    }
     
     efree(node);
 }
@@ -169,6 +172,30 @@ zend_function_entry php_cmark_parser_methods[] = {
     PHP_FE_END
 };
 
+PHP_METHOD(Node, __construct) {
+    php_cmark_node_t *node = php_cmark_node_fetch(getThis());
+    long type;
+    
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &type) != SUCCESS) {
+        return;
+    }
+    
+    node->n = cmark_node_new(type);
+}
+
+PHP_METHOD(Node, getAST) {
+    php_cmark_node_t *node = php_cmark_node_fetch(getThis());
+    char *ast = 
+        cmark_render_ast(node->n);
+    
+    if (zend_parse_parameters_none() != SUCCESS) {
+        return;
+    }
+    
+    RETVAL_STRING(ast, 1);
+    free(ast);
+}
+
 PHP_METHOD(Node, getHTML) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
     char *html = 
@@ -210,7 +237,7 @@ PHP_METHOD(Node, getContent) {
 
 PHP_METHOD(Node, setContent) {
     php_cmark_node_t *node = php_cmark_node_fetch(getThis());
-    zval *zinput;
+    zval *zinput = NULL;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zinput) != SUCCESS || !zinput) {
         return;
@@ -441,6 +468,7 @@ PHP_METHOD(Node, getNext) {
     object_init_ex(return_value, ce_Node);
     next = php_cmark_node_fetch(return_value);
     next->n = cmark_node_next(node->n);
+    next->ref = 1;
 }
 
 PHP_METHOD(Node, getPrevious) {
@@ -454,6 +482,7 @@ PHP_METHOD(Node, getPrevious) {
     object_init_ex(return_value, ce_Node);
     previous = php_cmark_node_fetch(return_value);
     previous->n = cmark_node_previous(node->n);
+    previous->ref = 1;
 }
 
 PHP_METHOD(Node, getParent) {
@@ -467,6 +496,7 @@ PHP_METHOD(Node, getParent) {
     object_init_ex(return_value, ce_Node);
     parent = php_cmark_node_fetch(return_value);
     parent->n = cmark_node_parent(node->n);
+    parent->ref = 1;
 }
 
 PHP_METHOD(Node, getFirstChild) {
@@ -480,6 +510,7 @@ PHP_METHOD(Node, getFirstChild) {
     object_init_ex(return_value, ce_Node);
     child = php_cmark_node_fetch(return_value);
     child->n = cmark_node_first_child(node->n);
+    child->ref = 1;
 }
 
 PHP_METHOD(Node, getLastChild) {
@@ -493,6 +524,7 @@ PHP_METHOD(Node, getLastChild) {
     object_init_ex(return_value, ce_Node);
     child = php_cmark_node_fetch(return_value);
     child->n = cmark_node_last_child(node->n);
+    child->ref = 1;
 }
 
 PHP_METHOD(Node, unlink) {
@@ -513,7 +545,7 @@ PHP_METHOD(Node, insertBefore) {
         return;
     }
     
-    RETURN_LONG(cmark_node_insert_before(node->n, php_cmark_node_fetch(sibling)->n));
+    RETURN_BOOL(cmark_node_insert_before(node->n, php_cmark_node_fetch(sibling)->n));
 }
 
 PHP_METHOD(Node, insertAfter) {
@@ -524,7 +556,7 @@ PHP_METHOD(Node, insertAfter) {
         return;
     }
     
-    RETURN_LONG(cmark_node_insert_after(node->n, php_cmark_node_fetch(sibling)->n));
+    RETURN_BOOL(cmark_node_insert_after(node->n, php_cmark_node_fetch(sibling)->n));
 }
 
 PHP_METHOD(Node, prependChild) {
@@ -535,7 +567,7 @@ PHP_METHOD(Node, prependChild) {
         return;
     }
     
-    RETURN_LONG(cmark_node_prepend_child(node->n, php_cmark_node_fetch(child)->n));
+    RETURN_BOOL(cmark_node_prepend_child(node->n, php_cmark_node_fetch(child)->n));
 }
 
 PHP_METHOD(Node, appendChild) {
@@ -546,7 +578,7 @@ PHP_METHOD(Node, appendChild) {
         return;
     }
     
-    RETURN_LONG(cmark_node_append_child(node->n, php_cmark_node_fetch(child)->n));
+    RETURN_BOOL(cmark_node_append_child(node->n, php_cmark_node_fetch(child)->n));
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_cmark_node_setHeaderLevel_arginfo, 0, 0, 1)
@@ -557,7 +589,13 @@ ZEND_BEGIN_ARG_INFO_EX(php_cmark_node_arginfo, 0, 0, 1)
     ZEND_ARG_INFO(0, node)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(php_cmark_type_arginfo, 0, 0, 1)
+    ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
 zend_function_entry php_cmark_node_methods[] = {
+    PHP_ME(Node, __construct,    php_cmark_type_arginfo,                ZEND_ACC_PUBLIC)
+    PHP_ME(Node, getAST,         php_cmark_no_arginfo,                  ZEND_ACC_PUBLIC)
     PHP_ME(Node, getHTML,        php_cmark_no_arginfo,                  ZEND_ACC_PUBLIC)
     PHP_ME(Node, getType,        php_cmark_no_arginfo,                  ZEND_ACC_PUBLIC)
     PHP_ME(Node, getContent,     php_cmark_no_arginfo,                  ZEND_ACC_PUBLIC)
