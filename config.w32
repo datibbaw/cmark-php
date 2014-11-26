@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("cmark", "for cmark support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("cmark", "enable cmark support", "no");
+
+if (PHP_CMARK != "no") {
+	EXTENSION("cmark", "cmark.c");
+}
+
