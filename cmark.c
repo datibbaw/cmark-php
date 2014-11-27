@@ -25,9 +25,11 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include "Zend/zend_exceptions.h"
 #include "php_cmark.h"
 #include <cmark.h>
 
+zend_class_entry *ce_Exception;
 zend_class_entry *ce_Parser;
 zend_class_entry *ce_Node;
 
@@ -83,7 +85,7 @@ static inline void php_cmark_node_free(void *object TSRMLS_DC) {
     zend_object_std_dtor(&node->std TSRMLS_CC);
     
     if (!node->ref) {
-        //cmark_free_nodes(node->n);   
+        cmark_node_destroy(node->n);   
     }
     
     efree(node);
@@ -156,6 +158,7 @@ PHP_METHOD(Parser, end) {
     node = 
         php_cmark_node_fetch(return_value);
     node->n = cmark_finish(parser->p);
+    node->ref = 1;
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_cmark_no_arginfo, 0, 0, 0)
@@ -247,7 +250,9 @@ PHP_METHOD(Node, setContent) {
         return;
     }
     
-    RETURN_BOOL(cmark_node_set_string_content(node->n, Z_STRVAL_P(zinput)));
+    if (!cmark_node_set_string_content(node->n, Z_STRVAL_P(zinput))) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set content for node");
+    }
 }
 
 PHP_METHOD(Node, getHeaderLevel) {
@@ -268,7 +273,9 @@ PHP_METHOD(Node, setHeaderLevel) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_header_level(node->n, level));
+    if (!cmark_node_set_header_level(node->n, level)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set header level for node");
+    }
 }
 
 PHP_METHOD(Node, getListType) {
@@ -289,7 +296,9 @@ PHP_METHOD(Node, setListType) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_list_type(node->n, type));
+    if (!cmark_node_set_list_type(node->n, type)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set list type for node");
+    }
 }
 
 PHP_METHOD(Node, getListStart) {
@@ -310,7 +319,9 @@ PHP_METHOD(Node, setListStart) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_list_start(node->n, start));
+    if (!cmark_node_set_list_start(node->n, start)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set list start for node");
+    }
 }
 
 PHP_METHOD(Node, getListTight) {
@@ -320,7 +331,7 @@ PHP_METHOD(Node, getListTight) {
         return;
     }
     
-    RETURN_LONG(cmark_node_get_list_tight(node->n));
+    RETURN_BOOL(cmark_node_get_list_tight(node->n));
 }
 
 PHP_METHOD(Node, setListTight) {
@@ -331,7 +342,9 @@ PHP_METHOD(Node, setListTight) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_list_tight(node->n, tight));
+    if (!cmark_node_set_list_tight(node->n, tight)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set list tight for node");
+    }
 }
 
 PHP_METHOD(Node, getFenceInfo) {
@@ -362,7 +375,9 @@ PHP_METHOD(Node, setFenceInfo) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_fence_info(node->n, info));
+    if (!cmark_node_set_fence_info(node->n, info)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set fence info for node");
+    }
 }
 
 PHP_METHOD(Node, getURL) {
@@ -393,7 +408,9 @@ PHP_METHOD(Node, setURL) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_url(node->n, url));
+    if (!cmark_node_set_url(node->n, url)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set url for node");
+    }
 }
 
 PHP_METHOD(Node, getTitle) {
@@ -424,7 +441,9 @@ PHP_METHOD(Node, setTitle) {
         return;
     }
     
-    RETURN_LONG(cmark_node_set_title(node->n, title));
+    if (!cmark_node_set_title(node->n, title)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to set title node");
+    }
 }
 
 PHP_METHOD(Node, getStartLine) {
@@ -545,7 +564,9 @@ PHP_METHOD(Node, insertBefore) {
         return;
     }
     
-    RETURN_BOOL(cmark_node_insert_before(node->n, php_cmark_node_fetch(sibling)->n));
+    if (!cmark_node_insert_before(node->n, php_cmark_node_fetch(sibling)->n)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to insert node");
+    }
 }
 
 PHP_METHOD(Node, insertAfter) {
@@ -556,7 +577,9 @@ PHP_METHOD(Node, insertAfter) {
         return;
     }
     
-    RETURN_BOOL(cmark_node_insert_after(node->n, php_cmark_node_fetch(sibling)->n));
+    if (!cmark_node_insert_after(node->n, php_cmark_node_fetch(sibling)->n)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to insert node");
+    }
 }
 
 PHP_METHOD(Node, prependChild) {
@@ -567,7 +590,9 @@ PHP_METHOD(Node, prependChild) {
         return;
     }
     
-    RETURN_BOOL(cmark_node_prepend_child(node->n, php_cmark_node_fetch(child)->n));
+    if (!cmark_node_prepend_child(node->n, php_cmark_node_fetch(child)->n)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to prepend child node");
+    }
 }
 
 PHP_METHOD(Node, appendChild) {
@@ -578,7 +603,9 @@ PHP_METHOD(Node, appendChild) {
         return;
     }
     
-    RETURN_BOOL(cmark_node_append_child(node->n, php_cmark_node_fetch(child)->n));
+    if (!cmark_node_append_child(node->n, php_cmark_node_fetch(child)->n)) {
+        zend_throw_exception_ex(ce_Exception, 0 TSRMLS_CC, "failed to append child node");
+    }
 }
 
 ZEND_BEGIN_ARG_INFO_EX(php_cmark_node_setHeaderLevel_arginfo, 0, 0, 1)
@@ -645,6 +672,11 @@ PHP_MINIT_FUNCTION(cmark)
         "CommonMark", "Node", php_cmark_node_methods);
     ce_Node   = zend_register_internal_class(&ce TSRMLS_CC);
     ce_Node->create_object = php_cmark_node_create;
+    
+    INIT_NS_CLASS_ENTRY(ce,
+        "CommonMark", "Exception", NULL);
+    ce_Exception = zend_register_internal_class_ex( 
+        &ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
 
 #define REGISTER_NODE_CONSTANT(n, v) zend_declare_class_constant_long(ce_Node, ZEND_STRL(#n), v TSRMLS_CC)
     REGISTER_NODE_CONSTANT(QUOTE,     CMARK_NODE_BLOCK_QUOTE);
